@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG 是什麼？從向量 RAG 到 Graph RAG ・ RAG Wiki 教學簡報</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#faf7f1;--card:#fff;--ink:#1f2a37;--muted:#5d6b7a;--line:#e4ddd0;--code:#f1ede4;--accent:#1f3a5f;--teal:#2a9d8f}
+@media (prefers-color-scheme:dark){:root{--paper:#141821;--card:#1c222d;--ink:#e6e9ef;--muted:#9aa6b5;--line:#2c3542;--code:#232b38}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--paper);color:var(--ink);font-family:"Noto Sans TC",system-ui,sans-serif;line-height:1.7;display:flex;flex-direction:column}
+a{color:var(--teal)}
+code{background:var(--code);padding:1px 6px;border-radius:5px}
+.bar{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;border-bottom:1px solid var(--line);background:var(--card);font-size:14px;color:var(--muted)}
+.bar b{color:var(--ink)}
+.stage{flex:1;display:flex;align-items:center;justify-content:center;padding:20px}
+.slide{display:none;width:min(960px,100%);min-height:min(540px,80vh);background:var(--card);border:1px solid var(--line);border-radius:18px;padding:44px 56px;box-shadow:0 10px 30px rgba(0,0,0,.06);position:relative}
+.slide.on{display:block}
+.slide h1{font-size:40px;line-height:1.3;margin:0 0 18px;font-weight:900;color:var(--accent)}
+.slide h2{font-size:30px;margin:0 0 18px;font-weight:900;color:var(--accent);padding-left:14px;border-left:5px solid var(--teal)}
+.slide p,.slide li{font-size:20px;margin:8px 0}
+.slide ul,.slide ol{padding-left:28px}
+.slide table{border-collapse:collapse;width:100%;font-size:18px;margin-top:8px}
+.slide th,.slide td{border:1px solid var(--line);padding:8px 12px;text-align:left}.slide th{background:var(--code)}
+.slide blockquote{margin:12px 0;padding:10px 18px;border-left:4px solid var(--teal);background:var(--code);border-radius:0 10px 10px 0;font-size:19px}
+.src{position:absolute;right:24px;bottom:16px;font-size:13px;color:var(--muted)}
+.src a{color:var(--muted);border-bottom:1px dashed var(--muted);text-decoration:none}
+.nav{display:flex;justify-content:center;gap:10px;padding:10px 0 22px;font-size:14px;color:var(--muted)}
+.nav button{font:inherit;padding:6px 16px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;cursor:pointer}
+@media (max-width:640px){.slide{padding:26px 22px}.slide h1{font-size:28px}.slide h2{font-size:22px}.slide p,.slide li{font-size:17px}}
+</style>
+</head>
+<body>
+<div class="bar"><span><b>RAG 是什麼？從向量 RAG 到 Graph RAG</b> ・ 由 RAG Wiki 生成</span><span><a href="index.html">回 Wiki</a></span></div>
+<div class="stage">
+<section class="slide"><h1>RAG 是什麼？</h1>
+<h2>從向量 RAG 到 Graph RAG</h2>
+<p>給完全沒接觸過的人的 12 頁入門。內容全部來自 <a class="wl" href="index.html">RAG Wiki</a>，每頁右下角標示出處。</p>
+<div class="src">出處：<a class="wl" href="index.html">RAG Wiki</a></div></section><section class="slide"><h2>先講問題：語言模型哪裡不夠用？</h2>
+<p>大型語言模型（LLM）的知識鎖在參數裡，所以：</p>
+<ul>
+<li><strong>會幻覺</strong>：講得很順，但內容是編的。</li>
+<li><strong>有截止日期</strong>：訓練之後發生的事它不知道。</li>
+<li>看不到<strong>公司內部的資料</strong>：你自己領域的文件，它沒讀過。</li>
+<li><strong>追不到出處</strong>：答案對不對，你沒辦法回頭查。</li>
+</ul>
+<p>有沒有不動模型、直接補知識的方法？</p>
+<div class="src">出處：<a class="wl" href="rag.html">什麼是 RAG</a></div></section><section class="slide"><h2>解法：讓模型先查資料再回答</h2>
+<p>檢索增強生成（Retrieval-Augmented Generation, RAG）：</p>
+<blockquote>
+<p>回答之前，先從外部資料庫<strong>檢索</strong>相關文件，再把文件和問題一起放進提示（prompt），讓模型<strong>有依據地生成</strong>。</p>
+</blockquote>
+<p>知識搬到模型外面的索引，換資料就等於更新知識，而且答案可以附引用。</p>
+<div class="src">出處：<a class="wl" href="rag.html">什麼是 RAG</a></div></section><section class="slide"><h2>RAG 的三個步驟</h2>
+<ol>
+<li><strong>索引（Indexing）</strong>：把文件切成片段，每段用嵌入模型轉成向量，存進向量資料庫。</li>
+<li><strong>檢索（Retrieval）</strong>：使用者的問題也轉成向量，找出最相似的前幾個片段。</li>
+<li><strong>生成（Generation）</strong>：把片段和問題組成 prompt 給模型，產生答案。</li>
+</ol>
+<p>這就是最基本的 <strong>Naive RAG</strong>。</p>
+<div class="src">出處：<a class="wl" href="rag.html">什麼是 RAG</a></div></section><section class="slide"><h2>「RAG」這個詞從哪來？</h2>
+<p>2020 年 Lewis 等人的論文第一次提出 RAG：</p>
+<ul>
+<li>把<strong>參數記憶</strong>（預訓練的生成模型）和<strong>非參數記憶</strong>（維基百科的向量索引）接在一起。</li>
+<li>檢索器用 DPR，生成器用 BART，兩者一起微調。</li>
+<li>開放域問答上贏過只靠參數的模型，生成的內容更具體、更少幻覺。</li>
+</ul>
+<p>今天工程上說的 RAG 多半不訓練模型、只靠 prompt 組合（見 <a class="wl" href="rag.html">什麼是 RAG</a>），但核心想法一樣：知識放外面，<strong>換索引就更新</strong>。</p>
+<div class="src">出處：<a class="wl" href="lewis-2020-rag.html">Lewis et al. 2020 — RAG 原始論文</a></div></section><section class="slide"><h2>RAG 不只一種：三個範式</h2>
+<table>
+<thead>
+<tr>
+  <th>範式</th>
+  <th>做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Naive RAG</strong></td>
+  <td>切塊、嵌入、檢索前幾段、塞進 prompt</td>
+</tr>
+<tr>
+  <td><strong>Advanced RAG</strong></td>
+  <td>檢索前改寫問題、檢索後重排與壓縮</td>
+</tr>
+<tr>
+  <td><strong>Modular RAG</strong></td>
+  <td>搜尋、路由、記憶等做成模組，可以重組</td>
+</tr>
+</tbody>
+</table>
+<p>大多數系統從 Naive 開始，碰到問題再往 Advanced 走。</p>
+<div class="src">出處：<a class="wl" href="gao-2023-rag-survey.html">Gao et al. 2023 — RAG 綜述</a></div></section><section class="slide"><h2>向量 RAG 的兩個盲點</h2>
+<p>向量檢索只比對「局部相似」，所以有兩類問題答不好：</p>
+<ul>
+<li><strong>全局問題</strong>：「這批文件主要在講什麼？」沒有任何一個片段能回答，取前幾段沒有意義。</li>
+<li><strong>多跳問題</strong>：「A 的老闆創辦的公司總部在哪？」要跨文件串起中間節點，一次相似度檢索抓不到。</li>
+</ul>
+<p>要解這兩類問題，需要把「片段」升級成「圖」。</p>
+<div class="src">出處：<a class="wl" href="graph-rag.html">Graph RAG</a></div></section><section class="slide"><h2>Graph RAG：把知識整理成圖</h2>
+<p>Graph RAG 泛指把知識整理成<strong>圖</strong>：節點是實體或概念，邊是關係。檢索時沿著圖找相關節點與摘要，而不只比對向量。</p>
+<p>好處：</p>
+<ul>
+<li>全局問題可以靠「社群摘要」回答。</li>
+<li>多跳問題可以沿著邊走過去。</li>
+</ul>
+<div class="src">出處：<a class="wl" href="graph-rag.html">Graph RAG</a></div></section><section class="slide"><h2>微軟 GraphRAG 怎麼做</h2>
+<ol>
+<li><strong>抽取</strong>：用 LLM 從每個片段抽出實體、關係與描述，合併成知識圖。</li>
+<li><strong>社群與摘要</strong>：把關係緊密的實體分群，為每個社群預先寫摘要。</li>
+<li><strong>全局查詢</strong>：每個社群摘要先各自回答一部分，再彙整成最終答案。</li>
+<li><strong>局部查詢</strong>：從問題抽出實體，找到圖上的節點，拉鄰居與相關片段。</li>
+</ol>
+<p>代價：建圖要對整批文本跑很多次 LLM，貴而慢。</p>
+<div class="src">出處：<a class="wl" href="graph-rag.html">Graph RAG</a></div></section><section class="slide"><h2>LightRAG：省成本的 Graph RAG</h2>
+<ul>
+<li>圖與向量<strong>一起用</strong>：實體與關係建成圖，節點和邊也做成向量。</li>
+<li><strong>雙層檢索</strong>：低層找具體實體與關係，高層找主題與抽象概念。</li>
+<li><strong>增量更新</strong>：新文件只合併新圖，不必整張重建。</li>
+</ul>
+<p>目標是比微軟 GraphRAG 便宜、快，又保留圖的好處。</p>
+<div class="src">出處：<a class="wl" href="guo-2024-lightrag.html">Guo et al. 2024 — LightRAG</a></div></section><section class="slide"><h2>怎麼知道自己的 RAG 做得好？</h2>
+<p>RAG 是兩段接起來的，要分開評：</p>
+<table>
+<thead>
+<tr>
+  <th>維度</th>
+  <th>問的問題</th>
+  <th>壞掉代表</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>上下文相關性</td>
+  <td>檢索到的段落真的跟問題有關嗎？</td>
+  <td>檢索有問題</td>
+</tr>
+<tr>
+  <td>忠實度</td>
+  <td>答案裡每個主張在上下文找得到依據嗎？</td>
+  <td>模型在幻覺</td>
+</tr>
+<tr>
+  <td>答案相關性</td>
+  <td>答案有沒有回到問題？</td>
+  <td>答非所問</td>
+</tr>
+</tbody>
+</table>
+<p>RAGAS 用 LLM 當評審算這三個分數，不需要人工寫標準答案。</p>
+<div class="src">出處：<a class="wl" href="rag-evaluation.html">RAG 怎麼評估</a></div></section><section class="slide"><h2>總結與延伸閱讀</h2>
+<ul>
+<li>RAG：讓模型先查再答，知識放外面、可更新、可引用。</li>
+<li>向量 RAG 答不好全局與多跳問題，Graph RAG 用知識圖補上。</li>
+<li>評估要拆開看檢索與生成。</li>
+</ul>
+<p>繼續讀：<a class="wl" href="rag.html">什麼是 RAG</a>、<a class="wl" href="graph-rag.html">Graph RAG</a>、<a class="wl" href="rag-evaluation.html">RAG 怎麼評估</a>，以及五篇來源頁。</p>
+<div class="src">出處：<a class="wl" href="index.html">RAG Wiki</a></div></section>
+</div>
+<div class="nav"><button id="prev">← 上一頁</button><span id="pos"></span><button id="next">下一頁 →</button></div>
+<script>
+const S=[...document.querySelectorAll('.slide')];let i=Math.max(0,Math.min(S.length-1,(parseInt(location.hash.slice(1))||1)-1));
+const show=n=>{i=(n+S.length)%S.length;S.forEach((s,k)=>s.classList.toggle('on',k===i));pos.textContent=(i+1)+' / '+S.length;history.replaceState(null,'','#'+(i+1));};
+prev.onclick=()=>show(i-1);next.onclick=()=>show(i+1);
+addEventListener('keydown',e=>{if(['ArrowRight',' ','PageDown'].includes(e.key)){e.preventDefault();show(i+1)}if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(i-1)}});
+show(i);
+</script>
+</body>
+</html>

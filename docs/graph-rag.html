@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graph RAG ・ RAG Wiki</title>
+<meta name="description" content="把文件抽成實體與關係的知識圖，檢索時在圖上走、聚合社群摘要，回答向量 RAG 答不了的全局與多跳問題。">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#faf7f1;--card:#fff;--ink:#1f2a37;--muted:#5d6b7a;--line:#e4ddd0;--code:#f1ede4;
+  --hub:#1f3a5f;--concept:#2a9d8f;--method:#7b5ea7;--comparison:#d08a1e;--qa:#c9496b;--source:#4f9d4a;--accent:var(--concept)}
+@media (prefers-color-scheme:dark){:root{--paper:#141821;--card:#1c222d;--ink:#e6e9ef;--muted:#9aa6b5;--line:#2c3542;--code:#232b38}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Noto Sans TC",system-ui,sans-serif;line-height:1.8}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+code{background:var(--code);padding:1px 6px;border-radius:5px;font-size:.92em}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 24px;border-bottom:1px solid var(--line);background:var(--card)}
+.brand{font-weight:900;font-size:20px;color:var(--ink)}.brand span{color:var(--accent)}
+.top nav a{color:var(--muted);padding:6px 12px;border-radius:999px}.top nav a:hover{background:var(--code);text-decoration:none}
+main{max-width:760px;margin:0 auto;padding:32px 20px 60px}
+h1{font-size:34px;line-height:1.3;margin:0 0 10px;font-weight:900}
+.badge{display:inline-block;background:var(--accent);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;vertical-align:middle;margin-right:10px}
+.summary{font-size:18px;color:var(--muted);margin:0 0 6px}.meta{font-size:14px;color:var(--muted);margin:0 0 24px}
+.content h2{font-size:22px;margin:38px 0 10px;padding-left:12px;border-left:4px solid var(--accent)}
+.content table{border-collapse:collapse;width:100%;font-size:15px}.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}.content th{background:var(--code)}
+a.wl{border-bottom:1px dashed var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin:12px 0 28px}
+.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;color:var(--ink)}
+.card:hover{text-decoration:none;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.card .badge{font-size:11px;margin:0 0 6px}.card b{display:block;font-size:16px}.card p{margin:4px 0 0;color:var(--muted);font-size:14px;line-height:1.6}
+.backlinks{margin-top:48px;padding:16px 20px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.backlinks h2{font-size:15px;margin:0 0 8px;color:var(--muted)}.backlinks ul{margin:0;padding-left:20px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:24px 16px 40px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html">RAG <span>Wiki</span></a><nav><a href="index.html#concept">概念</a><a href="index.html#method">方法</a><a href="index.html#comparison">比較</a><a href="index.html#qa">問答</a><a href="index.html#source">來源</a></nav></header>
+<main>
+  <h1><span class="badge">概念</span>Graph RAG</h1>
+  <p class="summary">把文件抽成實體與關係的知識圖，檢索時在圖上走、聚合社群摘要，回答向量 RAG 答不了的全局與多跳問題。</p>
+  <p class="meta">更新 2026-11-18 ・ 來源：<a class="wl" href="edge-2024-graphrag.html">Edge et al. 2024 — 微軟 GraphRAG 論文</a>、<a class="wl" href="guo-2024-lightrag.html">Guo et al. 2024 — LightRAG</a></p>
+  <article class="content">
+<h2>一句話</h2>
+<p>Graph RAG 泛指把知識整理成「圖」（節點是實體或概念，邊是關係），檢索時沿著圖找相關節點與摘要，而不只比對向量相似度。</p>
+<h2>為什麼需要</h2>
+<p><a class="wl" href="rag.html">什麼是 RAG</a> 的向量檢索有兩個盲點：</p>
+<ul>
+<li><strong>全局問題</strong>：「這批文件的主要主題是什麼？」沒有單一片段能回答，取 top-k 沒有意義。微軟的論文指出這其實是查詢導向摘要，不是檢索（<a class="wl" href="edge-2024-graphrag.html">Edge et al. 2024 — 微軟 GraphRAG 論文</a>）。</li>
+<li><strong>多跳問題</strong>：「A 的老闆創辦的公司總部在哪？」要跨文件串起中間節點，單次相似度檢索抓不到。</li>
+</ul>
+<h2>怎麼運作</h2>
+<p>以微軟 GraphRAG 為例（<a class="wl" href="edge-2024-graphrag.html">Edge et al. 2024 — 微軟 GraphRAG 論文</a>）：</p>
+<ol>
+<li><strong>抽取</strong>：用 LLM 從每個片段抽出實體、關係與描述，合併成知識圖。</li>
+<li><strong>社群與摘要</strong>：用社群偵測把關係緊密的實體分群，為每個社群預先生成摘要。</li>
+<li><strong>全局查詢</strong>：每個社群摘要先各自產生部分答案，再彙整成最終答案（map-reduce）。</li>
+<li><strong>局部查詢</strong>：從問題抽實體，找到圖上的節點，拉鄰居與相關片段組成 prompt。</li>
+</ol>
+<p>LightRAG 走較省成本的路：圖與向量雙索引，查詢時分「低層」（具體實體與關係）與「高層」（主題、抽象概念）去找，新文件只合併新圖、不必重建整張（<a class="wl" href="guo-2024-lightrag.html">Guo et al. 2024 — LightRAG</a>）。</p>
+<h2>限制與取捨</h2>
+<ul>
+<li>建圖要對整批文本跑很多次 LLM，索引階段貴而慢；抽取品質也不穩。</li>
+<li>文件更新時圖要跟著改；LightRAG 的增量更新就是為此（<a class="wl" href="guo-2024-lightrag.html">Guo et al. 2024 — LightRAG</a>）。</li>
+<li>對單純的局部事實問題，Graph RAG 不一定比向量 RAG 好；先做好 <a class="wl" href="rag.html">什麼是 RAG</a> 當基線，失敗案例多屬全局或多跳問題時再上。</li>
+</ul>
+<h2>相關頁面</h2>
+<p><a class="wl" href="rag.html">什麼是 RAG</a>、<a class="wl" href="rag-evaluation.html">RAG 怎麼評估</a></p>
+
+  </article>
+  <aside class="backlinks"><h2>反向連結</h2><ul><li><a class="wl" href="edge-2024-graphrag.html">Edge et al. 2024 — 微軟 GraphRAG 論文</a></li><li><a class="wl" href="guo-2024-lightrag.html">Guo et al. 2024 — LightRAG</a></li><li><a class="wl" href="index.html">RAG Wiki</a></li><li><a class="wl" href="lewis-2020-rag.html">Lewis et al. 2020 — RAG 原始論文</a></li><li><a class="wl" href="rag.html">什麼是 RAG</a></li><li><a class="wl" href="rag-evaluation.html">RAG 怎麼評估</a></li></ul></aside>
+</main>
+<footer>由 <code>wiki/graph-rag.md</code> 經 <code>scripts/build.py</code> 產生 ・ 規則見 <code>CLAUDE.md</code></footer>
+</body>
+</html>

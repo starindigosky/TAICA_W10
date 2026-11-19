@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>什麼是 RAG ・ RAG Wiki</title>
+<meta name="description" content="檢索增強生成：生成答案前先從外部知識庫找資料，把找到的片段和問題一起給模型。">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#faf7f1;--card:#fff;--ink:#1f2a37;--muted:#5d6b7a;--line:#e4ddd0;--code:#f1ede4;
+  --hub:#1f3a5f;--concept:#2a9d8f;--method:#7b5ea7;--comparison:#d08a1e;--qa:#c9496b;--source:#4f9d4a;--accent:var(--concept)}
+@media (prefers-color-scheme:dark){:root{--paper:#141821;--card:#1c222d;--ink:#e6e9ef;--muted:#9aa6b5;--line:#2c3542;--code:#232b38}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Noto Sans TC",system-ui,sans-serif;line-height:1.8}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+code{background:var(--code);padding:1px 6px;border-radius:5px;font-size:.92em}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 24px;border-bottom:1px solid var(--line);background:var(--card)}
+.brand{font-weight:900;font-size:20px;color:var(--ink)}.brand span{color:var(--accent)}
+.top nav a{color:var(--muted);padding:6px 12px;border-radius:999px}.top nav a:hover{background:var(--code);text-decoration:none}
+main{max-width:760px;margin:0 auto;padding:32px 20px 60px}
+h1{font-size:34px;line-height:1.3;margin:0 0 10px;font-weight:900}
+.badge{display:inline-block;background:var(--accent);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;vertical-align:middle;margin-right:10px}
+.summary{font-size:18px;color:var(--muted);margin:0 0 6px}.meta{font-size:14px;color:var(--muted);margin:0 0 24px}
+.content h2{font-size:22px;margin:38px 0 10px;padding-left:12px;border-left:4px solid var(--accent)}
+.content table{border-collapse:collapse;width:100%;font-size:15px}.content th,.content td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}.content th{background:var(--code)}
+a.wl{border-bottom:1px dashed var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin:12px 0 28px}
+.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;color:var(--ink)}
+.card:hover{text-decoration:none;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.card .badge{font-size:11px;margin:0 0 6px}.card b{display:block;font-size:16px}.card p{margin:4px 0 0;color:var(--muted);font-size:14px;line-height:1.6}
+.backlinks{margin-top:48px;padding:16px 20px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.backlinks h2{font-size:15px;margin:0 0 8px;color:var(--muted)}.backlinks ul{margin:0;padding-left:20px}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:24px 16px 40px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html">RAG <span>Wiki</span></a><nav><a href="index.html#concept">概念</a><a href="index.html#method">方法</a><a href="index.html#comparison">比較</a><a href="index.html#qa">問答</a><a href="index.html#source">來源</a></nav></header>
+<main>
+  <h1><span class="badge">概念</span>什麼是 RAG</h1>
+  <p class="summary">檢索增強生成：生成答案前先從外部知識庫找資料，把找到的片段和問題一起給模型。</p>
+  <p class="meta">更新 2026-11-18 ・ 來源：<a class="wl" href="lewis-2020-rag.html">Lewis et al. 2020 — RAG 原始論文</a>、<a class="wl" href="gao-2023-rag-survey.html">Gao et al. 2023 — RAG 綜述</a></p>
+  <article class="content">
+<h2>一句話</h2>
+<p>檢索增強生成（Retrieval-Augmented Generation, RAG）是在大型語言模型（LLM）回答之前，先從外部資料庫檢索相關文件，再把文件連同問題放進提示（prompt），讓模型有依據地生成。</p>
+<h2>為什麼需要</h2>
+<p>LLM 的知識鎖在參數裡：會幻覺、有截止日期、答案追不到出處，也看不到你自己領域或公司內部的資料（<a class="wl" href="gao-2023-rag-survey.html">Gao et al. 2023 — RAG 綜述</a>）。RAG 把知識搬到模型外面的索引，換資料就等於更新知識，而且答案可以附引用（<a class="wl" href="lewis-2020-rag.html">Lewis et al. 2020 — RAG 原始論文</a>）。</p>
+<h2>怎麼運作</h2>
+<ol>
+<li><strong>索引</strong>：把文件切成片段，用嵌入模型轉成向量，存進向量資料庫。</li>
+<li><strong>檢索</strong>：問題也轉成向量，找出最相似的 top-k 片段。</li>
+<li><strong>生成</strong>：把片段與問題組成 prompt 給 LLM 產生答案。</li>
+</ol>
+<p>「RAG」一詞來自 Lewis 等人 2020 年的論文，原本指把稠密檢索器 DPR 與生成模型 BART 接起來一起訓練（<a class="wl" href="lewis-2020-rag.html">Lewis et al. 2020 — RAG 原始論文</a>）；今天工程上說的 RAG 多半不訓練，只靠 prompt 組合。</p>
+<p>Gao 等人的綜述把演進分成三個範式（<a class="wl" href="gao-2023-rag-survey.html">Gao et al. 2023 — RAG 綜述</a>）：<strong>Naive RAG</strong> 就是上面三段直接串；<strong>Advanced RAG</strong> 在檢索前後加優化，例如改寫問題、對結果重排；<strong>Modular RAG</strong> 把搜尋、路由、記憶等做成可重組的模組。</p>
+<h2>限制與取捨</h2>
+<ul>
+<li>答案品質的上限由檢索決定：沒找到、找錯、排序錯，模型再強也救不回來。怎麼分辨是哪一段壞了，見 <a class="wl" href="rag-evaluation.html">RAG 怎麼評估</a>。</li>
+<li>向量檢索只比對「局部相似」，答不了「這批資料主要在講什麼」這種全局問題，也不擅長要串多段才能回答的多跳問題。這是 <a class="wl" href="graph-rag.html">Graph RAG</a> 想解的事。</li>
+</ul>
+<h2>相關頁面</h2>
+<p><a class="wl" href="graph-rag.html">Graph RAG</a>、<a class="wl" href="rag-evaluation.html">RAG 怎麼評估</a></p>
+
+  </article>
+  <aside class="backlinks"><h2>反向連結</h2><ul><li><a class="wl" href="gao-2023-rag-survey.html">Gao et al. 2023 — RAG 綜述</a></li><li><a class="wl" href="graph-rag.html">Graph RAG</a></li><li><a class="wl" href="index.html">RAG Wiki</a></li><li><a class="wl" href="lewis-2020-rag.html">Lewis et al. 2020 — RAG 原始論文</a></li><li><a class="wl" href="rag-evaluation.html">RAG 怎麼評估</a></li></ul></aside>
+</main>
+<footer>由 <code>wiki/rag.md</code> 經 <code>scripts/build.py</code> 產生 ・ 規則見 <code>CLAUDE.md</code></footer>
+</body>
+</html>
